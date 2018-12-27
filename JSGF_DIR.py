@@ -17,27 +17,21 @@ def convert_part(text):
     for index, p in enumerate(part_list):
         if text in p:
             return return_list[index]
-    return text        
+    return text
 
 # Separate runalong words, underscores, dashes and numbers that might be in file or directory names
 def clean_name(text):
+
     # Replace spaces, _, [,],(,),_,| with a single space
     text = re.sub(r'[_,\|,\[,\],\(,\)]+'," ",text)
+
     # Split along changes in capitalization
     text = ' '.join(re.findall('[a-zA-Z][^A-Z]*',text))
     text = text.lower()
-    #matches = re.finditer(r'(?<=[\s]{1})([a-z])(?=\s)',text)
-    #matches = re.finditer(r'(?<!\w)([a-z]{1})(?!\w)',text)
 
+    # Add . after single letters to show that each letter must be pronounced Ex. "AI" => "a i" => "a. i."
     text = re.sub(r'(?<!\w)([a-z]{1})(?!\w)',r'\1.',text)
-    
-    
-    #for m in matches:
-    #   print(m.group(0))
-    #   p = list(m.group(0))
-    #   p.insert(1,".")
-    #   text = text.replace(m.group(0), ''.join(p))
-        
+
     text = text.replace("0"," zero ")
     text = text.replace("1"," one ")
     text = text.replace("2"," two ")
@@ -55,7 +49,7 @@ def clean_name(text):
     text = text.replace("%"," percent ")
     text = text.replace("QR", " q. r. ")
     return text
-    
+
 def do_generation():
     #Convert absolute path to reversed domain name format
     absolute_path = os.path.abspath(TARGET_DIRECTORY)
@@ -69,7 +63,7 @@ def do_generation():
 
     #Print out the basic header and the grammar name. [:-1] gets rid of the last "." from the previous for loop
     do_output("#JSGF V1.0;\n\ngrammar " + grammar_name[:-1] + ";\n")
-    
+
     entries = os.scandir(TARGET_DIRECTORY)
     names = []
     directories = []
@@ -134,7 +128,7 @@ if CREATING_FILE:
     except:
         print("ERROR: Could not open output file!")
         sys.exit(2)
-        
+
 def do_output(text):
     if not CREATING_FILE:
         print(text)
