@@ -7,13 +7,40 @@ import os, sys, getopt, re
 CREATING_FILE = True
 TARGET_DIRECTORY = "./"
 OUTPUT_FILE = "listing.jsgf"
+listing_file=False
+
+# Function that prints out basic usage information
+def print_help():
+    print("JSGF Directory Listing Script")
+    print("Creates a JSGF file that lists filenames and directories present in the targeted directory.")
+    print("Useful for filesystem navigation with speech control.")
+    print("Usage:")
+    print("\tpython3 JSGFLS.py [OPTIONS] DIRECTORY")
+    print("")
+    print("DIRECTORY = The target directory that the listing will be generated based off of.")
+    print("OPTIONS may be:")
+    print("\t-h\t--help\t\tDisplays this help text")
+    print("\t-n\t--no-file\tDry run. Print out what would be written to the file into")
+    print("\t\t\t\tthe console and do not create an output file.")
+    print("\t-o\t--output FILE\tSets the name of the file that will be created that contains the listing.")
+    print("\t\t\t\t\tDefault: listing.jsgf")
+    print("")
+    print("Version 1.0")
+    print("Author: Tyler Sengia (ExpandingDev)")
+    print("tylersengia@gmail.com")
+
+def do_output(text):
+	if not CREATING_FILE:
+	    print(text)
+	else:
+	    os.write(listing_file,bytes(text.encode()))
 
 # Replace common file endings with voice control usable words. Ex: "7z" -> "seven zip"
 # TODO: Make this configurable. Nobody wants to go in here and edit it every time.
 def convert_part(text):
     text = clean_name(text.lower())
     part_list = (("pdf"), ("jsgf"), ("ods"), ("py"), ("bl"), ("gif"), ("7z", "7zip"), ("mpeg"), ("jpg","jpeg"), ("png"), ("mp3"), ("mp4"), ("wav"), ("gz"), ("txt"), ("docx"), ("odt"), ("tmp"), ("exe"), ("lnk"), ("bz"))
-    return_list = ["p. d. f.", "o. d. s.", "pi", "b. l.", "g. i. f.", "seven zip","m. peg","j. peg","p. n. g.","m. p. three","m. p. four", "wave", "g. zip","t. x. t.","doc x.","o. d. t.","temp","e. x. e.","link","b. zip"]
+    return_list = ["p. d. f.", "j. s. g. f.", "o. d. s.", "pi", "b. l.", "g. i. f.", "seven zip","m. peg","j. peg","p. n. g.","m. p. three","m. p. four", "wave", "g. zip","t. x. t.","doc x.","o. d. t.","temp","e. x. e.","link","b. zip"]
     for index, p in enumerate(part_list):
         if text in p:
             return return_list[index]
@@ -24,10 +51,23 @@ def clean_name(text):
 
     # Replace spaces, _, [,],(,),_,| with a single space
     text = re.sub(r'[_,\|,\[,\],\(,\)]+'," ",text)
+    smaller_bits = re.split(" ", text)
+    text=""
+    for s in smaller_bits:
+        if s.lower() == s:
+            #All lower case
+            print("")
+        elif s.upper() == s:
+            #All upper case
+            print("")
+        else:
+            #Must be camel case, so add a space between changes in capitalization
+            s = ' '.join(re.findall('[a-zA-Z][^A-Z]*',s))
+        text = text + s + " "
 
-    # Split along changes in capitalization
-    text = ' '.join(re.findall('[a-zA-Z][^A-Z]*',text))
-    text = text.lower()
+    text = text.strip() # Remove trailing space from that above for loop
+    text = text.lower() # Remove capitalization now that we have divided along it completely
+    
 
     # Add . after single letters to show that each letter must be pronounced Ex. "AI" => "a i" => "a. i."
     text = re.sub(r'(?<!\w)([a-z]{1})(?!\w)',r'\1.',text)
@@ -82,61 +122,38 @@ def do_generation():
     do_output("public <directories> = (" + (" | ".join(directories)) + ");\n")
     do_output("public <files> = (" + (" | ".join(files)) + ");\n")
 
-# Function that prints out basic usage information
-def print_help():
-    print("JSGF Directory Listing Script")
-    print("Creates a JSGF file that lists filenames and directories present in the targeted directory.")
-    print("Useful for filesystem navigation with speech control.")
-    print("Usage:")
-    print("\tpython3 JSGFLS.py [OPTIONS] DIRECTORY")
-    print("")
-    print("DIRECTORY = The target directory that the listing will be generated based off of.")
-    print("OPTIONS may be:")
-    print("\t-h\t--help\t\tDisplays this help text")
-    print("\t-n\t--no-file\tDry run. Print out what would be written to the file into")
-    print("\t\t\t\tthe console and do not create an output file.")
-    print("\t-o\t--output FILE\tSets the name of the file that will be created that contains the listing.")
-    print("\t\t\t\t\tDefault: listing.jsgf")
-    print("")
-    print("Version 1.0")
-    print("Author: Tyler Sengia (ExpandingDev)")
-    print("tylersengia@gmail.com")
+def main():
+	#Grab our args
+	try:
+		opt, args = getopt.getopt(sys.argv,"hno:",["help","no-file","output="])
+	except getopt.GetoptError: # Malformed arguments/options. Complain and error out
+		 print_help()
+		 sys.exit(2)
 
-#Grab our args
-try:
-    opt, args = getopt.getopt(sys.argv,"hno:",["help","no-file","output="])
-except getopt.GetoptError: # Malformed arguments/options. Complain and error out
-     print_help()
-     sys.exit(2)
+	for option, value in opt:
+		if option in ("--output","-o"):
+		       OUTPUT_FILE = value
 
-for option, value in opt:
-    if option in ("--output","-o"):
-           OUTPUT_FILE = value
+	#args[1:] is to splice out the first argument, which is the script name
+	for arg in args[1:]:
+		if arg in ("-h", "--help"):
+		    print_help()
+		    sys.exit()
+		elif arg in ("-n", "--no-file"):
+		    CREATING_FILE=False
 
-#args[1:] is to splice out the first argument, which is the script name
-for arg in args[1:]:
-    if arg in ("-h", "--help"):
-        print_help()
-        sys.exit()
-    elif arg in ("-n", "--no-file"):
-        CREATING_FILE=False
+	#The JSGF listing file that we create/overwrite. TODO: Windows support
+	if CREATING_FILE:
+		try:
+		    listing_file = os.open(OUTPUT_FILE,os.O_TRUNC|os.O_CREAT|os.O_WRONLY)
+		except:
+		    print("ERROR: Could not open output file!")
+		    sys.exit(2)
 
-#The JSGF listing file that we create/overwrite. TODO: Windows support
-if CREATING_FILE:
-    try:
-        listing_file = os.open(OUTPUT_FILE,os.O_TRUNC|os.O_CREAT|os.O_WRONLY)
-    except:
-        print("ERROR: Could not open output file!")
-        sys.exit(2)
+	do_generation()
 
-def do_output(text):
-    if not CREATING_FILE:
-        print(text)
-    else:
-        os.write(listing_file,bytes(text.encode()))
+	#Always remember to close your files kids!
+	if CREATING_FILE:
+		os.close(listing_file)
 
-do_generation()
-
-#Always remember to close your files kids!
-if CREATING_FILE:
-    os.close(listing_file)
+main()
